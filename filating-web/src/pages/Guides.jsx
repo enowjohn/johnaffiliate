@@ -1,4 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import axios from 'axios';
+import ReactPlayer from 'react-player';
 import { 
   ClockIcon, 
   StarIcon, 
@@ -74,7 +77,111 @@ const latestGuides = [
   }
 ];
 
+const YOUTUBE_API_KEY = import.meta.env.VITE_YOUTUBE_API_KEY;
+
+const DURATION_FILTERS = {
+  any: 'Any length',
+  short: 'Under 4 minutes',
+  medium: '4-20 minutes',
+  long: 'Over 20 minutes'
+};
+
+const SORT_OPTIONS = {
+  relevance: 'Most relevant',
+  date: 'Newest first',
+  viewCount: 'Most viewed',
+  rating: 'Top rated'
+};
+
+const searchYouTubeVideos = async (query, category = '', sortBy = 'relevance') => {
+  if (!query) return [];
+  const searchTerm = category ? `${query} ${category} auto parts tutorial` : `${query} auto parts tutorial`;
+  
+  try {
+  const response = await axios.get(`https://www.googleapis.com/youtube/v3/search`, {
+    params: {
+      part: 'snippet',
+      maxResults: 8,
+      q: searchTerm,
+      type: 'video',
+      key: YOUTUBE_API_KEY,
+      order: sortBy,
+    }
+  });
+
+  // Get video details to get duration
+  const videoIds = response.data.items.map(item => item.id.videoId).join(',');
+  const detailsResponse = await axios.get(`https://www.googleapis.com/youtube/v3/videos`, {
+    params: {
+      part: 'contentDetails,statistics',
+      id: videoIds,
+      key: YOUTUBE_API_KEY
+    }
+  });
+
+  // Combine search results with video details
+  return response.data.items.map(item => ({
+    ...item,
+    details: detailsResponse.data.items.find(detail => detail.id === item.id.videoId)
+  }));
+  } catch (error) {
+    console.error('YouTube API Error:', error);
+    throw new Error(error.response?.data?.error?.message || 'Failed to fetch videos');
+  }
+};
+
+// Convert ISO 8601 duration to minutes
+const getDurationInMinutes = (duration) => {
+  const match = duration.match(/PT(\d+H)?(\d+M)?(\d+S)?/);
+  const hours = parseInt(match[1]) || 0;
+  const minutes = parseInt(match[2]) || 0;
+  const seconds = parseInt(match[3]) || 0;
+  return hours * 60 + minutes + seconds / 60;
+};
+
 const Guides = () => {
+  const [selectedCategory, setSelectedCategory] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [sortBy, setSortBy] = useState('relevance');
+  const [durationFilter, setDurationFilter] = useState('any');
+  const [favorites, setFavorites] = useState([]);
+  const [showFavorites, setShowFavorites] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedVideo, setSelectedVideo] = useState(null);
+  
+  // Load favorites from localStorage
+  useEffect(() => {
+    const savedFavorites = localStorage.getItem('videoFavorites');
+    if (savedFavorites) {
+      setFavorites(JSON.parse(savedFavorites));
+    }
+  }, []);
+
+  // Save favorites to localStorage
+  useEffect(() => {
+    localStorage.setItem('videoFavorites', JSON.stringify(favorites));
+  }, [favorites]);
+
+  const toggleFavorite = (video) => {
+    setFavorites(prev => {
+      const exists = prev.some(v => v.id.videoId === video.id.videoId);
+      if (exists) {
+        return prev.filter(v => v.id.videoId !== video.id.videoId);
+      } else {
+        return [...prev, video];
+      }
+    });
+  };
+
+  const { data: videos } = useQuery(
+    ['videos', searchQuery, selectedCategory, sortBy],
+    () => searchYouTubeVideos(searchQuery, selectedCategory, sortBy),
+    {
+      enabled: Boolean(searchQuery),
+      staleTime: 1000 * 60 * 5, // 5 minutes
+    }
+  );
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
@@ -87,11 +194,44 @@ const Guides = () => {
             Step-by-step instructions and video tutorials for installing and maintaining auto parts
           </p>
           <div className="mt-8">
-            <input
-              type="text"
-              placeholder="Search guides..."
-              className="w-full max-w-xl px-6 py-3 rounded-lg text-gray-900"
-            />
+            <div className="relative w-full max-w-2xl mx-auto space-y-4">
+              <div className="flex gap-4">
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className="px-4 py-3 rounded-lg text-gray-900 border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                >
+                  {Object.entries(SORT_OPTIONS).map(([value, label]) => (
+                    <option key={value} value={value}>{label}</option>
+                  ))}
+                </select>
+                <select
+                  value={durationFilter}
+                  onChange={(e) => setDurationFilter(e.target.value)}
+                  className="px-4 py-3 rounded-lg text-gray-900 border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                >
+                  {Object.entries(DURATION_FILTERS).map(([value, label]) => (
+                    <option key={value} value={value}>{label}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex gap-4">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search video guides..."
+                  className="flex-1 px-6 py-3 rounded-lg text-gray-900 shadow-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                />
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className={`px-6 py-3 rounded-lg bg-yellow-500 text-white hover:bg-yellow-600 transition-colors ${!searchQuery && 'opacity-50 cursor-not-allowed'}`}
+                  disabled={!searchQuery}
+                >
+                  Clear
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -160,7 +300,13 @@ const Guides = () => {
                       <DocumentTextIcon className="w-5 h-5 mr-2" />
                       Read Guide
                     </button>
-                    <button className="flex items-center text-blue-600 hover:text-blue-700">
+                    <button 
+                      className="flex items-center text-blue-600 hover:text-blue-700"
+                      onClick={() => {
+                        setSearchQuery(guide.title);
+                        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+                      }}
+                    >
                       <VideoCameraIcon className="w-5 h-5 mr-2" />
                       Watch Video
                     </button>
@@ -176,10 +322,17 @@ const Guides = () => {
             <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
               <h3 className="text-xl font-bold mb-6">Categories</h3>
               <div className="space-y-4">
+                <div 
+                  className={`flex items-center justify-between cursor-pointer ${!selectedCategory ? 'text-blue-600 font-semibold' : 'hover:text-blue-600'}`}
+                  onClick={() => setSelectedCategory('')}
+                >
+                  <span>All Categories</span>
+                </div>
                 {categories.map((category, index) => (
                   <div
                     key={index}
-                    className="flex items-center justify-between hover:text-blue-600 cursor-pointer"
+                    className={`flex items-center justify-between cursor-pointer ${selectedCategory === category.name ? 'text-blue-600 font-semibold' : 'hover:text-blue-600'}`}
+                    onClick={() => setSelectedCategory(category.name)}
                   >
                     <span>{category.name}</span>
                     <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded-full text-sm">
@@ -208,19 +361,103 @@ const Guides = () => {
       <div className="bg-white py-20">
         <div className="container mx-auto px-6">
           <h2 className="text-3xl font-bold text-center mb-12">Video Tutorials</h2>
+          
+          {selectedVideo && (
+            <div className="mb-12">
+              <div className="max-w-4xl mx-auto aspect-video">
+                <ReactPlayer
+                  url={`https://www.youtube.com/watch?v=${selectedVideo.id.videoId}`}
+                  width="100%"
+                  height="100%"
+                  controls
+                />
+              </div>
+              <h3 className="text-xl font-semibold mt-4 text-center">{selectedVideo.snippet.title}</h3>
+            </div>
+          )}
+
+          {error && (
+            <div className="text-red-600 text-center mb-8">{error}</div>
+          )}
+          
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {[1, 2, 3, 4].map((_, index) => (
-              <div key={index} className="bg-gray-900 rounded-xl overflow-hidden">
-                <div className="aspect-video relative">
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <VideoCameraIcon className="w-12 h-12 text-white opacity-75" />
+            {isLoading ? (
+              <div className="col-span-4 flex justify-center items-center py-12">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+              </div>
+            ) : showFavorites ? (
+              favorites.length === 0 ? (
+                <div className="col-span-4 text-center py-12 text-gray-600">
+                  No favorite videos yet. Click the heart icon on videos to save them here.
+                </div>
+              ) : (
+                favorites.map((video) => (
+                  <VideoCard
+                    key={video.id.videoId}
+                    video={video}
+                    onSelect={() => setSelectedVideo(video)}
+                    isFavorite={true}
+                    onToggleFavorite={() => toggleFavorite(video)}
+                  />
+                ))
+              )
+            ) : !videos || videos.length === 0 ? (
+              <div className="col-span-4 text-center py-12 text-gray-600">
+                {searchQuery ? 'No videos found. Try a different search term.' : 'Start searching for auto parts videos!'}
+              </div>
+            ) : videos
+              .filter(video => {
+                if (durationFilter === 'any') return true;
+                const duration = getDurationInMinutes(video.details.contentDetails.duration);
+                switch (durationFilter) {
+                  case 'short': return duration < 4;
+                  case 'medium': return duration >= 4 && duration <= 20;
+                  case 'long': return duration > 20;
+                  default: return true;
+                }
+              })
+              .map((video) => (
+                <div 
+                  key={video.id.videoId} 
+                  className="bg-gray-900 rounded-xl overflow-hidden group"
+                >
+                  <div className="aspect-video relative cursor-pointer" onClick={() => setSelectedVideo(video)}>
+                    <img
+                      src={video.snippet.thumbnails.medium.url}
+                      alt={video.snippet.title}
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30 group-hover:bg-opacity-10 transition-opacity">
+                      <VideoCameraIcon className="w-12 h-12 text-white opacity-75" />
+                    </div>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleFavorite(video);
+                      }}
+                      className="absolute top-2 right-2 p-2 rounded-full bg-black bg-opacity-50 hover:bg-opacity-75 transition-colors"
+                    >
+                      <svg
+                        className={`w-6 h-6 ${favorites.some(v => v.id.videoId === video.id.videoId) ? 'text-yellow-500' : 'text-white'}`}
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                      >
+                        <path d="M9.653 16.915l-.005-.003-.019-.01a20.759 20.759 0 01-1.162-.682 22.045 22.045 0 01-2.582-1.9C4.045 12.733 2 10.352 2 7.5a4.5 4.5 0 018-2.828A4.5 4.5 0 0118 7.5c0 2.852-2.044 5.233-3.885 6.82a22.049 22.049 0 01-3.744 2.582l-.019.01-.005.003h-.002a.739.739 0 01-.69.001l-.002-.001z" />
+                      </svg>
+                    </button>
+                  </div>
+                  <div className="p-4 text-white">
+                    <h3 className="font-semibold line-clamp-2">{video.snippet.title}</h3>
+                    <div className="flex justify-between items-center mt-2 text-sm text-gray-400">
+                      <span>{video.snippet.channelTitle}</span>
+                      <span>{Math.round(getDurationInMinutes(video.details.contentDetails.duration))}m</span>
+                    </div>
+                    <div className="flex items-center gap-4 mt-2 text-sm text-gray-400">
+                      <span>{parseInt(video.details.statistics.viewCount).toLocaleString()} views</span>
+                      <span>{parseInt(video.details.statistics.likeCount).toLocaleString()} likes</span>
+                    </div>
                   </div>
                 </div>
-                <div className="p-4 text-white">
-                  <h3 className="font-semibold">Installation Tutorial {index + 1}</h3>
-                  <p className="text-gray-400 text-sm mt-2">10:30 mins</p>
-                </div>
-              </div>
             ))}
           </div>
         </div>
