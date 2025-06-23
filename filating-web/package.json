@@ -11,7 +11,12 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "vercel-build": "vite build",
-    "vercel-postinstall": "npm install"
+    "preinstall": "npx only-allow pnpm",
+    "install": "pnpm install"
+  },
+  "build": {
+    "command": "npm run build",
+    "output": "dist"
   },
   "vercel": {
     "builds": [
@@ -32,11 +37,6 @@
     ],
     "env": {
       "VITE_API_URL": "https://api.yourdomain.com"
-    }
-  },
-  "build": {
-    "output": {
-      "path": "dist"
     }
   }
   },
