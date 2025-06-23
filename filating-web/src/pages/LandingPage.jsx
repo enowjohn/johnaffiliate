@@ -11,31 +11,53 @@ import {
   ChevronDownIcon
 } from "@heroicons/react/24/solid";
 import { useState, useEffect } from "react";
+import VehicleCompatibilityChecker from '../components/VehicleCompatibilityChecker';
+import ProductComparison from '../components/ProductComparison';
 
 const carParts = [
   {
     name: "Performance Exhaust Systems",
     image: "https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?w=500&h=300&auto=format&fit=crop",
     price: "$299.99",
-    description: "High-flow performance exhaust systems for maximum power"
+    description: "High-flow performance exhaust systems for maximum power",
+    specs: {
+      material: "Stainless Steel",
+      horsepowerGain: "+25HP",
+      warranty: "Lifetime"
+    }
   },
   {
     name: "LED Headlight Kit",
     image: "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=500&h=300&auto=format&fit=crop",
     price: "$199.99",
-    description: "Ultra-bright LED headlight conversion kits"
+    description: "Ultra-bright LED headlight conversion kits",
+    specs: {
+      brightness: "12000LM",
+      lifespan: "50000 hours",
+      colorTemp: "6000K"
+    }
   },
   {
     name: "Sport Brake Kit",
     image: "https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?w=500&h=300&auto=format&fit=crop",
     price: "$499.99",
-    description: "High-performance brake systems for superior stopping power"
+    description: "High-performance brake systems for superior stopping power",
+    specs: {
+      stoppingDistance: "-20%",
+      padMaterial: "Ceramic",
+      rotorType: "Drilled & Slotted"
+    }
   },
   {
     name: "Custom Wheels",
     image: "https://images.unsplash.com/photo-1511919884226-fd3cad34687c?w=500&h=300&auto=format&fit=crop",
     price: "$899.99",
-    description: "Premium alloy wheels for style and performance"
+    description: "Premium alloy wheels for style and performance",
+    specs: {
+      material: "Forged Aluminum",
+      weight: "15lbs",
+      finish: "Matte Black"
+    }
   }
 ];
 
@@ -248,6 +270,15 @@ const LandingPage = () => {
     <div className="relative">
       {/* Hero Section with Advanced Search */}
       <div className="min-h-screen w-screen min-w-xl overflow-hidden flex items-center flex-col relative bg-gradient-to-br from-blue-600 to-purple-700">
+        {/* Vehicle Compatibility Checker */}
+        <div className="container mx-auto px-6 mt-8">
+          <VehicleCompatibilityChecker />
+        </div>
+
+        {/* Product Comparison Section */}
+        <div className="container mx-auto px-6 mt-8">
+          <ProductComparison products={carParts} />
+        </div>
         <div className="absolute inset-0 bg-black opacity-50"></div>
         <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?auto=format&fit=crop')] bg-cover bg-center mix-blend-overlay"></div>
         

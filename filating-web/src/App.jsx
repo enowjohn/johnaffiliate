@@ -8,6 +8,7 @@ import Dashboard from './pages/Dashboard';
 import AffiliateLinks from './pages/AffiliateLinks';
 import Analytics from './pages/Analytics';
 import Referrals from './pages/Referrals';
+import Settings from './pages/Settings';
 import ProtectedRoute from './components/ProtectedRoute';
 import LandingPage from './pages/LandingPage';
 import Login from './pages/Login';
@@ -38,6 +39,21 @@ function App() {
       <Route path="/guides" element={<Guides />} />
       <Route path="/support" element={<Support />} />
       <Route path="/contact-sales" element={<ContactSales />} />
+      <Route path="/dashboard/*" element={
+        <ProtectedRoute>
+          <DashboardLayout />
+        </ProtectedRoute>
+      }>
+        <Route index element={<Dashboard />} />
+        <Route path="links" element={<AffiliateLinks />} />
+        <Route path="analytics" element={<Analytics />} />
+        <Route path="referrals" element={<Referrals />} />
+        <Route path="settings" element={
+          <ProtectedRoute>
+            <Settings />
+          </ProtectedRoute>
+        } />
+      </Route>
 
       {/* Protected Dashboard Routes */}
       <Route path="/dashboard" element={
@@ -49,6 +65,11 @@ function App() {
         <Route path="links" element={<AffiliateLinks />} />
         <Route path="analytics" element={<Analytics />} />
         <Route path="referrals" element={<Referrals />} />
+        <Route path="settings" element={
+          <ProtectedRoute>
+            <Settings />
+          </ProtectedRoute>
+        } />
       </Route>
 
       {/* Catch-all route for 404 */}

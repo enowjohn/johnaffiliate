@@ -6,15 +6,46 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:client": "vite build",
+    "start": "vite preview",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "vercel-build": "vite build",
+    "preinstall": "npx only-allow pnpm",
+    "install": "pnpm install"
+  },
+  "build": {
+    "command": "npm run build",
+    "output": "dist"
+  },
+  "vercel": {
+    "builds": [
+      {
+        "src": "package.json",
+        "use": "@vercel/static-build"
+      }
+    ],
+    "routes": [
+      {
+        "src": "/api/(.*)",
+        "dest": "/api/$1"
+      },
+      {
+        "src": "/(.*)",
+        "dest": "/index.html"
+      }
+    ],
+    "env": {
+      "VITE_API_URL": "https://api.yourdomain.com"
+    }
+  }
   },
   "dependencies": {
-    "@emotion/react": "^11.14.0",
-    "@emotion/styled": "^11.14.0",
+    "@emotion/react": "^11.11.3",
+    "@emotion/styled": "^11.11.0",
     "@headlessui/react": "^1.7.18",
     "@heroicons/react": "^2.2.0",
-    "@mui/material": "^7.1.0",
+    "@mui/material": "^5.15.10",
     "@stripe/stripe-js": "^7.3.0",
     "@tanstack/react-query": "^5.77.2",
     "axios": "^1.9.0",

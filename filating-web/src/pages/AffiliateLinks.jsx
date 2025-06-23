@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { api } from '../services/api';
 import { toast } from 'react-toastify';
+import { PlusIcon, TrashIcon, ChartBarIcon, ArrowPathIcon } from '@heroicons/react/24/solid';
 
 const AffiliateLinks = () => {
   const [links, setLinks] = useState([]);
@@ -10,9 +11,18 @@ const AffiliateLinks = () => {
     category: '',
     commissionRate: ''
   });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [stats, setStats] = useState({
+    totalClicks: 0,
+    totalConversions: 0,
+    totalEarnings: 0,
+    conversionRate: 0
+  });
 
   useEffect(() => {
     fetchLinks();
+    fetchStats();
   }, []);
 
   const fetchLinks = async () => {
@@ -21,6 +31,16 @@ const AffiliateLinks = () => {
       setLinks(response.data);
     } catch (error) {
       console.error('Failed to fetch links:', error);
+    }
+  };
+
+  const fetchStats = async () => {
+    try {
+      const response = await fetch('/api/affiliate/stats');
+      const data = await response.json();
+      setStats(data);
+    } catch (err) {
+      console.error('Error fetching stats:', err);
     }
   };
 
@@ -51,9 +71,21 @@ const AffiliateLinks = () => {
   };
 
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold mb-6">Affiliate Links</h1>
-      
+    <div className="container mx-auto px-4 py-8">
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-3xl font-bold">Affiliate Links</h1>
+        <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2">
+            <ChartBarIcon className="h-5 w-5 text-blue-600" />
+            <span className="text-sm text-gray-600">Conversion Rate: {stats.conversionRate}%</span>
+          </div>
+          <div className="flex items-center space-x-2">
+            <ArrowPathIcon className="h-5 w-5 text-green-600" />
+            <span className="text-sm text-gray-600">Earnings: ${stats.totalEarnings}</span>
+          </div>
+        </div>
+      </div>
+
       <div className="bg-white rounded-lg shadow p-6 mb-6">
         <h2 className="text-xl font-semibold mb-4">Create New Link</h2>
         <form onSubmit={createLink} className="space-y-4">

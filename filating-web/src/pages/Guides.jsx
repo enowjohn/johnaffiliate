@@ -7,7 +7,8 @@ import {
   StarIcon, 
   ChartBarIcon,
   VideoCameraIcon,
-  DocumentTextIcon
+  DocumentTextIcon,
+  XMarkIcon
 } from '@heroicons/react/24/outline';
 
 const popularGuides = [
@@ -18,7 +19,8 @@ const popularGuides = [
     views: "15K",
     rating: 4.8,
     image: "https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?w=500&h=300&fit=crop",
-    category: "Brakes"
+    category: "Brakes",
+    content: "Step-by-step guide for replacing brake pads, including safety precautions and required tools."
   },
   {
     title: "Oil Change Guide",
@@ -27,7 +29,8 @@ const popularGuides = [
     views: "25K",
     rating: 4.9,
     image: "https://images.unsplash.com/photo-1487754180451-c456f719a1fc?w=500&h=300&fit=crop",
-    category: "Maintenance"
+    category: "Maintenance",
+    content: "Complete guide to changing your vehicle's oil, including oil selection and disposal tips."
   },
   {
     title: "Spark Plug Replacement",
@@ -36,7 +39,8 @@ const popularGuides = [
     views: "12K",
     rating: 4.7,
     image: "https://images.unsplash.com/photo-1565043589221-1a6fd9ae45c7?w=500&h=300&fit=crop",
-    category: "Engine"
+    category: "Engine",
+    content: "Learn how to replace spark plugs and improve engine performance with this detailed guide."
   }
 ];
 
@@ -141,15 +145,29 @@ const getDurationInMinutes = (duration) => {
 
 const Guides = () => {
   const [selectedCategory, setSelectedCategory] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [sortBy, setSortBy] = useState('relevance');
-  const [durationFilter, setDurationFilter] = useState('any');
-  const [favorites, setFavorites] = useState([]);
-  const [showFavorites, setShowFavorites] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [durationFilter, setDurationFilter] = useState('any');
+  const [sortBy, setSortBy] = useState('relevance');
+  const [favorites, setFavorites] = useState([]);
   const [selectedVideo, setSelectedVideo] = useState(null);
-  
+  const [showFavorites, setShowFavorites] = useState(false);
+  const [selectedGuide, setSelectedGuide] = useState(null);
+
+  const { data: videos = [], isLoading, error } = useQuery({
+    queryKey: ['videos', searchQuery, selectedCategory, sortBy],
+    queryFn: async () => {
+      try {
+        if (!searchQuery) return [];
+        return await searchYouTubeVideos(searchQuery, selectedCategory, sortBy);
+      } catch (err) {
+        throw new Error(err.response?.data?.error?.message || 'Failed to fetch videos');
+      }
+    },
+    enabled: Boolean(searchQuery),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 30 * 60 * 1000 // 30 minutes
+  });
+
   // Load favorites from localStorage
   useEffect(() => {
     const savedFavorites = localStorage.getItem('videoFavorites');
@@ -174,14 +192,6 @@ const Guides = () => {
     });
   };
 
-  const { data: videos } = useQuery(
-    ['videos', searchQuery, selectedCategory, sortBy],
-    () => searchYouTubeVideos(searchQuery, selectedCategory, sortBy),
-    {
-      enabled: Boolean(searchQuery),
-      staleTime: 1000 * 60 * 5, // 5 minutes
-    }
-  );
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
@@ -358,6 +368,83 @@ const Guides = () => {
       </div>
 
       {/* Video Tutorials Section */}
+      {/* Popular Guides Section */}
+      <div className="bg-gray-100 py-16">
+        <div className="container mx-auto px-6">
+          <h2 className="text-3xl font-bold text-center mb-12">Popular Installation Guides</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+            {popularGuides.map((guide, index) => (
+              <div key={index} className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
+                <img src={guide.image} alt={guide.title} className="w-full h-48 object-cover" />
+                <div className="p-6">
+                  <h3 className="text-xl font-semibold mb-3">{guide.title}</h3>
+                  <div className="flex items-center gap-4 text-sm text-gray-600 mb-4">
+                    <span className="flex items-center">
+                      <ClockIcon className="w-4 h-4 mr-1" />
+                      {guide.time}
+                    </span>
+                    <span className="flex items-center">
+                      <StarIcon className="w-4 h-4 mr-1" />
+                      {guide.rating}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-500">{guide.difficulty}</span>
+                    <button
+                      onClick={() => setSelectedGuide(guide)}
+                      className="bg-blue-600 text-white px-4 py-2 rounded-full text-sm hover:bg-blue-700 transition-colors"
+                    >
+                      Read Guide
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Guide Modal */}
+      {selectedGuide && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl max-w-2xl w-full mx-4 overflow-hidden">
+            <div className="relative">
+              <img src={selectedGuide.image} alt={selectedGuide.title} className="w-full h-64 object-cover" />
+              <button
+                onClick={() => setSelectedGuide(null)}
+                className="absolute top-4 right-4 bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-75 transition-colors"
+              >
+                <XMarkIcon className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-6">
+              <h2 className="text-2xl font-bold mb-4">{selectedGuide.title}</h2>
+              <div className="flex items-center gap-6 mb-6 text-gray-600">
+                <span className="flex items-center">
+                  <ClockIcon className="w-5 h-5 mr-2" />
+                  {selectedGuide.time}
+                </span>
+                <span className="flex items-center">
+                  <StarIcon className="w-5 h-5 mr-2" />
+                  {selectedGuide.rating}
+                </span>
+                <span className="text-blue-600 font-medium">{selectedGuide.difficulty}</span>
+              </div>
+              <p className="text-gray-700 mb-6">{selectedGuide.content}</p>
+              <div className="flex justify-end">
+                <button
+                  onClick={() => setSelectedGuide(null)}
+                  className="bg-gray-200 text-gray-700 px-6 py-2 rounded-full hover:bg-gray-300 transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Video Tutorials Section */}
       <div className="bg-white py-20">
         <div className="container mx-auto px-6">
           <h2 className="text-3xl font-bold text-center mb-12">Video Tutorials</h2>
@@ -377,7 +464,9 @@ const Guides = () => {
           )}
 
           {error && (
-            <div className="text-red-600 text-center mb-8">{error}</div>
+            <div className="text-red-600 text-center mb-8">
+              {error instanceof Error ? error.message : 'An error occurred while fetching videos'}
+            </div>
           )}
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
