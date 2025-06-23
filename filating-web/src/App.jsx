@@ -39,6 +39,21 @@ function App() {
       <Route path="/guides" element={<Guides />} />
       <Route path="/support" element={<Support />} />
       <Route path="/contact-sales" element={<ContactSales />} />
+      <Route path="/dashboard/*" element={
+        <ProtectedRoute>
+          <DashboardLayout />
+        </ProtectedRoute>
+      }>
+        <Route index element={<Dashboard />} />
+        <Route path="links" element={<AffiliateLinks />} />
+        <Route path="analytics" element={<Analytics />} />
+        <Route path="referrals" element={<Referrals />} />
+        <Route path="settings" element={
+          <ProtectedRoute>
+            <Settings />
+          </ProtectedRoute>
+        } />
+      </Route>
 
       {/* Protected Dashboard Routes */}
       <Route path="/dashboard" element={

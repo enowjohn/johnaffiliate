@@ -9,7 +9,36 @@
     "build:client": "vite build",
     "start": "vite preview",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "vercel-build": "vite build",
+    "vercel-postinstall": "npm install"
+  },
+  "vercel": {
+    "builds": [
+      {
+        "src": "package.json",
+        "use": "@vercel/static-build"
+      }
+    ],
+    "routes": [
+      {
+        "src": "/api/(.*)",
+        "dest": "/api/$1"
+      },
+      {
+        "src": "/(.*)",
+        "dest": "/index.html"
+      }
+    ],
+    "env": {
+      "VITE_API_URL": "https://api.yourdomain.com"
+    }
+  },
+  "build": {
+    "output": {
+      "path": "dist"
+    }
+  }
   },
   "dependencies": {
     "@emotion/react": "^11.11.3",
